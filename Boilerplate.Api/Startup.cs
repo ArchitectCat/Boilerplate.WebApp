@@ -26,7 +26,8 @@ namespace Boilerplate.Api
             services.AddCors();
             services.AddAntiforgery();
             
-            var tokenOptions = new JwtTokenOptions("Boilerplate.Api", "Boilerplate", "secret", 30);
+            var tokenOptions = new JwtTokenOptions("Boilerplate.Api", "Boilerplate", 
+                "super_secret_signing_key", 30);
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>(serviceProvider => new JwtTokenGenerator(tokenOptions));
             
             services
@@ -54,6 +55,8 @@ namespace Boilerplate.Api
                     };
                 });
             services.AddAuthorization();
+
+            services.AddControllers();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -68,7 +71,9 @@ namespace Boilerplate.Api
             }
             
             app.UseHttpsRedirection();
-
+           
+            app.UseRouting();
+            
             app.UseCookiePolicy(new CookiePolicyOptions
             {
                 MinimumSameSitePolicy = SameSiteMode.Strict,
@@ -82,8 +87,6 @@ namespace Boilerplate.Api
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials());
-
-            app.UseRouting();
 
             app.Use(async (context, next) =>
             {
@@ -100,6 +103,8 @@ namespace Boilerplate.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGet("/", async context => { await context.Response.WriteAsync("Hello World!"); });
+
+                endpoints.MapControllers();
             });
         }
     }
