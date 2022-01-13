@@ -1,5 +1,7 @@
 using System;
+using Boilerplate.Api.Middlewares;
 using Boilerplate.Identity.Jwt;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.CookiePolicy;
@@ -24,7 +26,13 @@ namespace Boilerplate.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddAntiforgery();
+            
+            services.AddAntiforgery(options =>
+            {
+                // Client should be reading ".AspNetCore.Xsrf" cookie created in middleware
+                // and passing it back as "x-xsrf-token" cookie for XSRF validation
+                options.HeaderName = "x-xsrf-token";
+            });
             
             var tokenOptions = new JwtTokenOptions("Boilerplate.Api", "Boilerplate", 
                 "super_secret_signing_key", 30);
@@ -88,13 +96,7 @@ namespace Boilerplate.Api
                 .AllowAnyHeader()
                 .AllowCredentials());
 
-            app.Use(async (context, next) =>
-            {
-                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-                context.Response.Headers.Add("X-Xss-Protection", "1");
-                context.Response.Headers.Add("X-Frame-Options", "DENY");
-                await next();
-            });
+            app.UseMiddleware<XsrfProtectionMiddleware>(app.ApplicationServices.GetService<IAntiforgery>());
             
             app
                 .UseAuthentication()
